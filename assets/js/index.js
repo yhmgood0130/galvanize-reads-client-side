@@ -18,19 +18,19 @@ $(document).ready(function() {
 })
 
 function displayBooks() {
-  $.get( baseUrl + `books/all`, (data) => {
-  let bookList = [];
+  $.get( localUrl + `books/all`, (data) => {
+  let authorList = [];
   for (var j = 0; j < data.length; j++) {
     for (var k = 0; k < data[j].author.length; k++) {
-      bookList.push(`<option>${data[j].author[k].first_name} ${data[j].author[k].last_name}</option>`);
+      authorList.push(`<option>${data[j].author[k].first_name} ${data[j].author[k].last_name}</option>`);
     }
   }
 
-  let bookArray = bookList.filter(function(elem, pos) {
-    return bookList.indexOf(elem) == pos;
+  let authorArray = authorList.filter(function(elem, pos) {
+    return authorList.indexOf(elem) == pos;
   });
 
-  bookArray = bookArray.toString();
+  authorArray = authorArray.toString();
 
   $('.container').prepend(`<h1>Book</h1>
                           <a href="#newBook" class="btn-floating btn-large page-button waves-effect modal-trigger waves-light right red"><i class="material-icons">add</i></a>
@@ -50,7 +50,7 @@ function displayBooks() {
                                 <div class="input-field">
                                   <select multiple>
                                     <option value="" disabled selected>Choose your option</option>
-                                      ${bookArray}
+                                      ${authorArray}
                                   </select>
                                 </div>
                                 <div class="input-field">
@@ -105,7 +105,7 @@ function displayBooks() {
           <div class="input-field">
             <select multiple>
               <option value="" disabled selected>Choose your option</option>
-              ${bookArray}
+              ${authorArray}
             </select>
           </div>
           <div class="input-field">
@@ -133,7 +133,7 @@ function displayBooks() {
       });
 
       $.ajax({
-        url:`${baseUrl}books/${bookId}/edit`,
+        url:`${localUrl}books/${bookId}/edit`,
         type:"PUT",
         dataType:"json",
         data: {
@@ -157,7 +157,7 @@ function displayBooks() {
           author.push($(this).text());
       });
 
-        $.post(`${baseUrl}books/new`,
+        $.post(`${localUrl}books/new`,
         {
           title: $("#newTitle").val(),
           genre: $("#newGenre").val(),
@@ -178,7 +178,7 @@ function displayBooks() {
       $(`a[href="#bookModal${i+1}"]`).fadeOut();
 
       $.ajax({
-        url:`${baseUrl}books/${bookId}`,
+        url:`${localUrl}books/${bookId}`,
         type: 'DELETE'
       })
         .done(function(){
@@ -202,20 +202,10 @@ function displayBooks() {
 
 function displayAuthors() {
 
-  $.get(baseUrl + 'authors/all', (data) => {
+  $.get(localUrl + 'authors/all', (data) => {
 
-  let authorList = [];
-  for (var j = 0; j < data.length; j++) {
-    for (var k = 0; k < data[j].books.length; k++) {
-      authorList.push(`<option>${data[j].books[k].title}</option>`);
-    }
-  }
 
-  let uniqueArray = authorList.filter(function(elem, pos) {
-    return authorList.indexOf(elem) == pos;
-  });
-
-  uniqueArray = uniqueArray.toString();
+    $.get(localUrl + 'books/all',(data2) => {
 
   $('.container').empty();
   $('.container').prepend(`<div class="header-container">
@@ -237,9 +227,9 @@ function displayAuthors() {
           <label class="active" for="newLastName" data-error="wrong" data-success="right">Author Name</label>
         </div>
         <div class="input-field">
-          <select multiple>
+          <select id="newBookSelect" multiple>
             <option value="" disabled selected>Choose your option</option>
-            ${uniqueArray}
+
           </select>
         </div>
         <div class="input-field">
@@ -259,6 +249,44 @@ function displayAuthors() {
 
     for (var i = 0; i < data.length; i++) {
       var titles = data[i].books.map(book => book.title)
+
+      let bookAllList = [];
+      let bookSelectList = [];
+      let BooksOfAuthor = [];
+
+      data2.map(function(obj){
+        bookAllList.push(obj.title);
+      })
+
+      data[i].books.map(function(obj){
+        data2.map(function(obj2){
+          if(obj2.title == obj.title){
+            bookSelectList.push(obj2.title);
+          }
+        })
+      })
+
+      bookAllList = bookAllList.filter(function(val) {
+        return bookSelectList.indexOf(val) == -1;
+      });
+
+      bookSelectList.map(function(obj){
+        data2.map(function(obj2){
+          if(obj2.title == obj){
+            BooksOfAuthor.push(`<a id="${obj2.id}" class="selectBooks collection-item active">${obj2.title}</a>`);
+          }
+        })
+      })
+
+      bookAllList.map(function(obj){
+        data2.map(function(obj2){
+          if(obj2.title == obj){
+            BooksOfAuthor.push(`<a id="${obj2.id}" class="selectBooks collection-item">${obj2.title}</a>`);
+          }
+        })
+      })
+
+
       $('.carousel').append(`<a href="#authorModal${i+1}" class="carousel-item modal-trigger"><img src="${data[i].url}"></a>`)
       $('.carousel').after(`<div id="authorModal${i+1}" class="modal modal-fixed-footer">
         <div class="modal-content">
@@ -294,11 +322,8 @@ function displayAuthors() {
               <textarea id="author-biography" type="text" class="validate materialize-textarea">${data[i].biography}</textarea>
               <label class="active" for="author-biography" data-error="wrong" data-success="right">Biography</label>
             </div>
-            <div class="input-field">
-              <select multiple>
-                <option value="" disabled selected>Choose your option</option>
-                ${uniqueArray}
-              </select>
+            <div class="collection bookSelection${i}">
+              ${BooksOfAuthor.join("").toString()}
             </div>
           </form>
         </div>
@@ -306,23 +331,35 @@ function displayAuthors() {
           <button type="submit" form="editAuthorForm${i}" class="modal-action modal-close waves-effect waves-green btn-flat">Done</a>
         </div>
       </div>`)
-
-      $('select').material_select();
+      $('#bookSelect').material_select();
 
       let authorId = data[i].id;
 
       $(`form#editAuthorForm${i}`).submit(function(event) {
         event.preventDefault();
 
-        let books = []
+        let books2 = [];
+        let numbers = [];
         $(this).parent().before().find(`li.active`).each( function( index, element ){
             books.push($(this).text());
         });
 
+        numbers = $(`.bookSelection${($(this).attr('id')).slice(-1)}`).find(`.active`).map(function(){return $(this).attr('id')}).get();
+
+        console.log(numbers);
+
+        numbers.map(function(arr){
+          books2.push({"book_id": parseInt(arr), "author_id": authorId});
+        })
+
+        console.log(books2);
+
+        // dataType:"json",
+
         $.ajax({
-          url:`${baseUrl}authors/${authorId}/edit`,
+          url:`${localUrl}authors/${authorId}/edit`,
           type:"PUT",
-          dataType:"json",
+          dataType: "json",
           data: {
             first_name: $(this).parent().before().find(`#author_first_name`).val(),
             last_name: $(this).parent().before().find(`#author_last_name`).val(),
@@ -330,7 +367,15 @@ function displayAuthors() {
             url: $(this).parent().before().find(`#authorPicture`).val()
           },
           complete: function () {
-            displayAuthors();
+            $.ajax({
+              url:`${localUrl}authors/${authorId}/editBooks`,
+              type:"POST",
+              contentType: 'application/json',
+		          data: JSON.stringify(books2),
+              complete: function () {
+                displayAuthors();
+              }
+            })
           }
         })
       })
@@ -339,7 +384,7 @@ function displayAuthors() {
         $(`a[href="#authorModal${i+1}"]`).fadeOut();
 
         $.ajax({
-          url:`${baseUrl}authors/${authorId}`,
+          url:`${localUrl}authors/${authorId}`,
           type: 'DELETE'
         })
           .done(function(){
@@ -347,6 +392,15 @@ function displayAuthors() {
           })
       });
     }
+
+    $('.selectBooks').click(function(){
+
+      if (!$(this).hasClass('active')) {
+            $(this).addClass('active');
+      } else (
+        $(this).removeClass('active')
+      )
+    })
 
     $(`form#addAuthorForm`).submit(function(event) {
       event.preventDefault();
@@ -356,7 +410,7 @@ function displayAuthors() {
           books.push($(this).text());
       });
 
-      $.post(`${baseUrl}authors/new`,
+      $.post(`${localUrl}authors/new`,
       {
         first_name: $("#newFirstName").val(),
         last_name: $("#newLastName").val(),
@@ -374,5 +428,6 @@ function displayAuthors() {
 
     $('.carousel').carousel();
     $('.modal').modal();
+    })
   });
 }
