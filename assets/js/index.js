@@ -176,6 +176,8 @@ function displayBooks() {
             books2.push({"book_id": bookId, "author_id": parseInt(arr)});
           })
 
+          console.log($(this).parent().before().find(`#bookCover`).val());
+
           $.ajax({
             url:`${baseUrl}books/${bookId}/edit`,
             type:"PUT",
@@ -184,7 +186,7 @@ function displayBooks() {
               title: $(this).parent().before().find(`#book_title`).val(),
               genre: $(this).parent().before().find(`#book_genre`).val(),
               description: $(this).parent().before().find(`#book_description`).val(),
-              url: $(this).parent().before().find(`#authorPicture`).val()
+              url: $(this).parent().before().find(`#bookCover`).val()
             }
           })
           .done(function(){
