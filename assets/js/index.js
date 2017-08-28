@@ -65,6 +65,10 @@ function displayBooks() {
           description: $("#newBookDescription").val(),
           url: $("#newBookCover").val()
         })
+        .done(function() {
+          $('.container').empty();
+          displayBooks();
+        })
       })
 
       for (var i = 0; i < data.length; i++) {
@@ -184,7 +188,6 @@ function displayBooks() {
             }
           })
           .done(function(){
-            console.log("SDA");
             $.ajax({
               url:`${baseUrl}books/${bookId}/editAuthors`,
               type:"POST",
