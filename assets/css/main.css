@@ -7,6 +7,14 @@
 
 }
 
+.modal-head {
+  font-weight: 900;
+}
+
+.title-modal {
+  font-weight: 600;
+}
+
 .selecty {
   overflow:visible;
 }

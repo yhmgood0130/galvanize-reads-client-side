@@ -4,12 +4,11 @@ const localUrl = `http://localhost:8080/`
 
 $(document).ready(function() {
 
-    displayBooks()
+  displayBooks();
 
   $(`#bookPage`).click(() => {
     $('.container').empty();
       displayBooks()
-
   })
 
   $(`#authorPage`).click(() => {
@@ -18,194 +17,222 @@ $(document).ready(function() {
 })
 
 function displayBooks() {
-  $.get( localUrl + `books/all`, (data) => {
-  let authorList = [];
-  for (var j = 0; j < data.length; j++) {
-    for (var k = 0; k < data[j].author.length; k++) {
-      authorList.push(`<option>${data[j].author[k].first_name} ${data[j].author[k].last_name}</option>`);
-    }
-  }
+  $.get(baseUrl + `books/all`, (data) => {
+    $.get(baseUrl + 'authors/all',(data2) => {
 
-  let authorArray = authorList.filter(function(elem, pos) {
-    return authorList.indexOf(elem) == pos;
-  });
+      let newAuthorList = [];
 
-  authorArray = authorArray.toString();
-
-  $('.container').prepend(`<h1>Book</h1>
-                          <a href="#newBook" class="btn-floating btn-large page-button waves-effect modal-trigger waves-light right red"><i class="material-icons">add</i></a>
-                          <div class="carousel"></div>`)
-  $('.container').append(`<div id="newBook" class="modal modal-fixed-footer">
-                            <div class="modal-content">
-                              <h4>Add</h4>
-                              <form id="addBookForm" role="form">
-                                <div class="input-field">
-                                  <input placeholder="Title" id="newTitle" value="" type="text" required="" aria-required="true" class="validate">
-                                  <label class="active" for="newTitle" data-error="wrong" data-success="right">Title</label>
-                                </div>
-                                <div class="input-field">
-                                  <input placeholder="Genre" id="newGenre" value="" type="text" required="" aria-required="true" class="validate">
-                                  <label class="active" for="newGenre" data-error="wrong" data-success="right">Genre</label>
-                                </div>
-                                <div class="input-field">
-                                  <select multiple>
-                                    <option value="" disabled selected>Choose your option</option>
-                                      ${authorArray}
-                                  </select>
-                                </div>
-                                <div class="input-field">
-                                  <input placeholder="http://example.com/handsomejack.jpg" id="newBookCover" value="" type="text" required="" aria-required="true" class="validate">
-                                  <label class="active" for="newBookCover" data-error="wrong" data-success="right">URL for profile picture</label>
-                                </div>
-                                <div class="input-field">
-                                  <textarea placeholder="Please enter the description of the book" id="newBookDescription" type="text" required="" aria-required="true" class="validate materialize-textarea"></textarea>
-                                  <label class="active" for="newBookDescription" data-error="wrong" data-success="right">Description</label>
-                                </div>
-                              </div>
-                             </form>
-                            <div class="modal-footer">
-                              <button id="addButton" type="submit" form="addBookForm" class="modal-action waves-effect waves-green btn-flat ">Add</a>
-                            </div>
-                          </div>`)
-
-  for (var i = 0; i < data.length; i++) {
-    var names = data[i].author.map(auth => auth.first_name + " " + auth.last_name)
-    $('.carousel').append(`<a href="#bookModal${i+1}" class="carousel-item modal-trigger"><img src="${data[i].url}"></a>`)
-    $('.carousel').after(`<div id="bookModal${i+1}" class="modal modal-fixed-footer">
-      <div class="modal-content">
-        <h4>Info</h4>
-        <p class="red-text">${data[i].title}</p>
-        <p class="red-text">${data[i].genre}</p>
-        <p class="red-text">${names.join("<br>")}</p>
-        <p class="red-text">${data[i].description}</p>
-      </div>
-      <div class="modal-footer">
-        <a href="#deleteBook-${i}" class="modal-action modal-close waves-effect waves-green left btn-flat ">Delete</a>
-        <a href="#editBook-${i}" href="#!" class="modal-action modal-close modal-trigger waves-effect waves-green btn-flat ">Edit</a>
-        <a href="#!" class="modal-action modal-close waves-effect waves-green btn-flat ">Close</a>
-      </div>
-    </div>
-
-    <div id="editBook-${i}" class="modal modal-fixed-footer">
-      <div class="modal-content">
-        <h4>Edit</h4>
-        <form id="editBookForm${i}" role="form">
-          <div class="input-field">
-            <input id="book_title" value="${data[i].title}" type="text" class="validate">
-            <label class="active" for="book_title">Book Title</label>
-          </div>
-          <div class="input-field">
-            <input id="book_genre" value="${data[i].genre}" type="text" class="validate">
-            <label class="active" for="book_genre">Book Genre</label>
-          </div>
-          <div class="input-field">
-            <input id="bookCover" value="${data[i].url}" type="text" class="validate">
-            <label class="active" for="bookCover" data-error="wrong" data-success="right">URL for Cover Picture</label>
-          </div>
-          <div class="input-field">
-            <select multiple>
-              <option value="" disabled selected>Choose your option</option>
-              ${authorArray}
-            </select>
-          </div>
-          <div class="input-field">
-            <textarea id="book_description" type="text" class="validate materialize-textarea">${data[i].description}</textarea>
-            <label class="active" for="book_description">Book Description</label>
-          </div>
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button type="submit" href="#editBook" form="editBookForm${i}" href="#!" class="modal-action modal-close waves-effect waves-green btn-flat ">Edit</a>
-      </div>
-    </div>`)
-
-    $('select').material_select();
-
-    let bookId = data[i].id;
-
-    $(`form#editBookForm${i}`).submit(function(event) {
-      event.preventDefault();
-
-
-      let books = []
-      $(this).parent().before().find(`li.active`).each( function( index, element ){
-          books.push($(this).text());
-      });
-
-      $.ajax({
-        url:`${localUrl}books/${bookId}/edit`,
-        type:"PUT",
-        dataType:"json",
-        data: {
-          title: $(this).parent().before().find(`#book_title`).val(),
-          genre: $(this).parent().before().find(`#book_genre`).val(),
-          description: $(this).parent().before().find(`#book_description`).val(),
-          url: $(this).parent().before().find(`#authorPicture`).val()
-        },
-        complete: function () {
-          $('.container').empty();
-          displayBooks(data);
-        }
+      data2.map(function(obj2){
+        newAuthorList.push(`<a id="${obj2.id}" class="selectAuthors collection-item">${obj2.first_name} ${obj2.last_name}</a>`);
       })
-    })
 
-    $(`form#addBookForm`).submit(function(event) {
-      event.preventDefault();
+      $('.container').prepend(`<h1>Book</h1>
+                              <a href="#newBook" class="btn-floating btn-large page-button waves-effect modal-trigger waves-light right red"><i class="material-icons">add</i></a>
+                              <div class="carousel"></div>`)
+      $('.container').append(`<div id="newBook" class="modal modal-fixed-footer">
+                                <div class="modal-content">
+                                  <h4>Add</h4>
+                                  <form id="addBookForm" role="form">
+                                    <div class="input-field">
+                                      <input placeholder="Title" id="newTitle" value="" type="text" required="" aria-required="true" class="validate">
+                                      <label class="active" for="newTitle" data-error="wrong" data-success="right">Title</label>
+                                    </div>
+                                    <div class="input-field">
+                                      <input placeholder="Genre" id="newGenre" value="" type="text" required="" aria-required="true" class="validate">
+                                      <label class="active" for="newGenre" data-error="wrong" data-success="right">Genre</label>
+                                    </div>
+                                    <div class="input-field">
+                                      <input placeholder="http://example.com/handsomejack.jpg" id="newBookCover" value="" type="text" required="" aria-required="true" class="validate">
+                                      <label class="active" for="newBookCover" data-error="wrong" data-success="right">URL for profile picture</label>
+                                    </div>
+                                    <div class="input-field">
+                                      <textarea placeholder="Please enter the description of the book" id="newBookDescription" type="text" required="" aria-required="true" class="validate materialize-textarea"></textarea>
+                                      <label class="active" for="newBookDescription" data-error="wrong" data-success="right">Description</label>
+                                    </div>
+                                  </div>
+                                 </form>
+                                <div class="modal-footer">
+                                  <button id="addButton" type="submit" form="addBookForm" class="modal-action waves-effect waves-green btn-flat ">Add</a>
+                                </div>
+                              </div>`)
 
-      let author = []
-      $(this).parent().before().find(`li.active`).each( function( index, element ){
-          author.push($(this).text());
-      });
-
-        $.post(`${localUrl}books/new`,
+      $(`form#addBookForm`).submit(function(event) {
+        event.preventDefault();
+        $.post(`${baseUrl}books/new`,
         {
           title: $("#newTitle").val(),
           genre: $("#newGenre").val(),
           description: $("#newBookDescription").val(),
           url: $("#newBookCover").val()
         })
-          .done(function(){
-            $('.container').empty();
-            displayBooks(data);
-          })
-    })
-
-    $(`#addButton`).click(function() {
-      $(`#addButton`).addClass('modal-close')
-    });
-
-    $(`a[href="#deleteBook-${i}"]`).click(function(){
-      $(`a[href="#bookModal${i+1}"]`).fadeOut();
-
-      $.ajax({
-        url:`${localUrl}books/${bookId}`,
-        type: 'DELETE'
       })
-        .done(function(){
-          displayBooks(data);
+
+      for (var i = 0; i < data.length; i++) {
+        var names = data[i].author.map(auth => auth.first_name + " " + auth.last_name)
+
+        let authorAllList = [];
+        let authorSelectList = [];
+        let authorsOfBook = [];
+
+        data2.map(function(obj){
+          authorAllList.push(obj.first_name + " " + obj.last_name);
         })
-    });
-  }
 
-  $(`#addButton`).click(function() {
-    $(`#addButton`).addClass('modal-close')
-  });
+        data[i].author.map(function(obj){
+          data2.map(function(obj2){
+            if(obj2.first_name + obj2.last_name == obj.first_name + obj.last_name){
+              authorSelectList.push(obj2.first_name + " " + obj2.last_name);
+            }
+          })
+        })
 
-    $(`a[href="#deleteBook-${i}"]`).click(function(){
-      $(`a[href="#bookModal${i+1}"]`).fadeOut();
-    });
+        authorAllList = authorAllList.filter(function(val) {
+          return authorSelectList.indexOf(val) == -1;
+        });
 
-  $('.carousel').carousel();
-  $('.modal').modal();
+        authorSelectList.map(function(obj){
+          data2.map(function(obj2){
+            if(obj2.first_name + " " + obj2.last_name == obj){
+              authorsOfBook.push(`<a id="${obj2.id}" class="selectAuthors collection-item active">${obj2.first_name} ${obj2.last_name}</a>`);
+            }
+          })
+        })
+
+        authorAllList.map(function(obj){
+          data2.map(function(obj2){
+            if(obj2.first_name + " " + obj2.last_name == obj){
+              authorsOfBook.push(`<a id="${obj2.id}" class="selectAuthors collection-item">${obj2.first_name} ${obj2.last_name}</a>`);
+            }
+          })
+        })
+
+        $('.carousel').append(`<a href="#bookModal${i+1}" class="carousel-item modal-trigger"><img src="${data[i].url}"></a>`)
+        $('.carousel').after(`<div id="bookModal${i+1}" class="modal modal-fixed-footer">
+          <div class="modal-content">
+            <h5 class="title-modal">Title</h5>
+            <p>${data[i].title}</p>
+            <h5 class="title-modal">Genre</h5>
+            <p>${data[i].genre}</p>
+            <h5 class="title-modal">Author(s)</h5>
+            <p class="">${names.join(", ")}</p>
+            <h5 class="title-modal">Description</h5>
+            <p class="">${data[i].description}</p>
+          </div>
+          <div class="modal-footer">
+            <a href="#deleteBook-${i}" class="modal-action modal-close waves-effect waves-green left btn-flat ">Delete</a>
+            <a href="#editBook-${i}" href="#!" class="modal-action modal-close modal-trigger waves-effect waves-green btn-flat ">Edit</a>
+            <a href="#!" class="modal-action modal-close waves-effect waves-green btn-flat ">Close</a>
+          </div>
+        </div>
+
+        <div id="editBook-${i}" class="modal modal-fixed-footer">
+          <div class="modal-content">
+            <h4>Edit</h4>
+            <form id="editBookForm${i}" role="form">
+              <div class="input-field">
+                <input id="book_title" value="${data[i].title}" type="text" class="validate">
+                <label class="active" for="book_title">Book Title</label>
+              </div>
+              <div class="input-field">
+                <input id="book_genre" value="${data[i].genre}" type="text" class="validate">
+                <label class="active" for="book_genre">Book Genre</label>
+              </div>
+              <div class="input-field">
+                <input id="bookCover" value="${data[i].url}" type="text" class="validate">
+                <label class="active" for="bookCover" data-error="wrong" data-success="right">URL for Cover Picture</label>
+              </div>
+              <div class="input-field">
+                <textarea id="book_description" type="text" class="validate materialize-textarea">${data[i].description}</textarea>
+                <label class="active" for="book_description">Book Description</label>
+              </div>
+              <div class="collection authorSelection${i}">
+                ${authorsOfBook.join("").toString()}
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" href="#editBook" form="editBookForm${i}" href="#!" class="modal-action modal-close waves-effect waves-green btn-flat ">Edit</a>
+          </div>
+        </div>`)
+
+        $('select').material_select();
+
+        let bookId = data[i].id;
+
+        $(`form#editBookForm${i}`).submit(function(event) {
+          event.preventDefault();
+
+          let books2 = [];
+          let numbers = [];
+
+
+          numbers = $(`.authorSelection${($(this).attr('id')).slice(-1)}`).find(`.active`).map(function(){return $(this).attr('id')}).get();
+
+          numbers.map(function(arr){
+            books2.push({"book_id": bookId, "author_id": parseInt(arr)});
+          })
+
+          $.ajax({
+            url:`${baseUrl}books/${bookId}/edit`,
+            type:"PUT",
+            dataType:"json",
+            data: {
+              title: $(this).parent().before().find(`#book_title`).val(),
+              genre: $(this).parent().before().find(`#book_genre`).val(),
+              description: $(this).parent().before().find(`#book_description`).val(),
+              url: $(this).parent().before().find(`#authorPicture`).val()
+            }
+          })
+          .done(function(){
+            console.log("SDA");
+            $.ajax({
+              url:`${baseUrl}books/${bookId}/editAuthors`,
+              type:"POST",
+              contentType: 'application/json',
+              data: JSON.stringify(books2),
+              complete: function () {
+                $('.container').empty();
+                displayBooks();
+              }
+            })
+          })
+        })
+
+        $(`a[href="#deleteBook-${i}"]`).click(function(){
+          $.ajax({
+            url:`${baseUrl}books/${bookId}`,
+            type: 'DELETE'
+          })
+          // location.href = '/';
+        });
+      }
+
+      $(`#addButton`).click(function() {
+        $(`#addButton`).addClass('modal-close')
+      });
+
+      $('.selectAuthors').click(function(){
+
+        if (!$(this).hasClass('active')) {
+              $(this).addClass('active');
+        } else (
+          $(this).removeClass('active')
+        )
+      })
+
+      $('.carousel').carousel();
+      $('.modal').modal();
+
+  })
  })
 }
 
 function displayAuthors() {
 
-  $.get(localUrl + 'authors/all', (data) => {
+  $.get(baseUrl + 'authors/all', (data) => {
 
 
-    $.get(localUrl + 'books/all',(data2) => {
+    $.get(baseUrl + 'books/all',(data2) => {
 
   $('.container').empty();
   $('.container').prepend(`<div class="header-container">
@@ -246,6 +273,8 @@ function displayAuthors() {
       <button id="addButton" type="submit" form="addAuthorForm" class="modal-action waves-effect waves-green btn-flat ">Add</a>
     </div>
   </div>`)
+
+  addAuthor();
 
     for (var i = 0; i < data.length; i++) {
       var titles = data[i].books.map(book => book.title)
@@ -290,10 +319,12 @@ function displayAuthors() {
       $('.carousel').append(`<a href="#authorModal${i+1}" class="carousel-item modal-trigger"><img src="${data[i].url}"></a>`)
       $('.carousel').after(`<div id="authorModal${i+1}" class="modal modal-fixed-footer">
         <div class="modal-content">
-          <h4>Info</h4>
-          <p class="red-text">NAME <br><br> ${data[i].first_name} ${data[i].last_name}</p>
-          <p class="red-text">TITLE <br><br> ${titles.join("<br>")}</p>
-          <p class="red-text">Biography <br><br>${data[i].biography}</p>
+          <h5 class="title-modal">Name</h5>
+          <p class="">${data[i].first_name} ${data[i].last_name}</p>
+          <h5 class="title-modal">Book(s)</h5>
+          <p class="">${titles.join("<br>")}</p>
+          <h5 class="title-modal">Biography</h5>
+          <p class="">${data[i].biography}</p>
         </div>
         <div class="modal-footer">
           <a href="#deleteAuthor-${i}" class="modal-action modal-close waves-effect waves-green left btn-flat ">Delete</a>
@@ -340,24 +371,15 @@ function displayAuthors() {
 
         let books2 = [];
         let numbers = [];
-        $(this).parent().before().find(`li.active`).each( function( index, element ){
-            books.push($(this).text());
-        });
 
         numbers = $(`.bookSelection${($(this).attr('id')).slice(-1)}`).find(`.active`).map(function(){return $(this).attr('id')}).get();
-
-        console.log(numbers);
 
         numbers.map(function(arr){
           books2.push({"book_id": parseInt(arr), "author_id": authorId});
         })
 
-        console.log(books2);
-
-        // dataType:"json",
-
         $.ajax({
-          url:`${localUrl}authors/${authorId}/edit`,
+          url:`${baseUrl}authors/${authorId}/edit`,
           type:"PUT",
           dataType: "json",
           data: {
@@ -365,18 +387,16 @@ function displayAuthors() {
             last_name: $(this).parent().before().find(`#author_last_name`).val(),
             biography: $(this).parent().before().find(`#author-biography`).val(),
             url: $(this).parent().before().find(`#authorPicture`).val()
-          },
-          complete: function () {
-            $.ajax({
-              url:`${localUrl}authors/${authorId}/editBooks`,
-              type:"POST",
-              contentType: 'application/json',
-		          data: JSON.stringify(books2),
-              complete: function () {
-                displayAuthors();
-              }
-            })
           }
+        })
+        .done(function () {
+          $.ajax({
+            url:`${baseUrl}authors/${authorId}/editBooks`,
+            type:"POST",
+            contentType: 'application/json',
+            data: JSON.stringify(books2)
+          })
+          displayAuthors();
         })
       })
 
@@ -384,7 +404,7 @@ function displayAuthors() {
         $(`a[href="#authorModal${i+1}"]`).fadeOut();
 
         $.ajax({
-          url:`${localUrl}authors/${authorId}`,
+          url:`${baseUrl}authors/${authorId}`,
           type: 'DELETE'
         })
           .done(function(){
@@ -402,26 +422,6 @@ function displayAuthors() {
       )
     })
 
-    $(`form#addAuthorForm`).submit(function(event) {
-      event.preventDefault();
-
-      let books = []
-      $(this).parent().before().find(`li.active`).each( function( index, element ){
-          books.push($(this).text());
-      });
-
-      $.post(`${localUrl}authors/new`,
-      {
-        first_name: $("#newFirstName").val(),
-        last_name: $("#newLastName").val(),
-        biography: $("#newAuthorBio").val(),
-        url: $("#newAuthPicture").val()
-      })
-        .done(function(){
-          displayAuthors();
-        })
-    })
-
     $(`#addButton`).click(function() {
       $(`#addButton`).addClass('modal-close')
     });
@@ -430,4 +430,21 @@ function displayAuthors() {
     $('.modal').modal();
     })
   });
+}
+
+function addAuthor() {
+  $(`form#addAuthorForm`).submit(function(event) {
+    event.preventDefault();
+
+    $.post(`${baseUrl}authors/new`,
+    {
+      first_name: $("#newFirstName").val(),
+      last_name: $("#newLastName").val(),
+      biography: $("#newAuthorBio").val(),
+      url: $("#newAuthPicture").val()
+    })
+      .done(function(){
+        displayAuthors();
+      })
+  })
 }
